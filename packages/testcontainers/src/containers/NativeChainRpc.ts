@@ -1,7 +1,7 @@
 import { StartedNativeChainContainer } from './NativeChainContainer'
 import fetch from 'cross-fetch'
 import { DeFiDContainer, MasterNodeRegTestContainer } from '../index'
-import { BlockHeader } from 'packages/jellyfish-api-core/dist/category/blockchain'
+import { blockchain } from 'packages/jellyfish-api-core'
 
 export class NativeChainRpc {
   private readonly rpcUrl: string
@@ -114,7 +114,7 @@ export class NativeChainRpc {
   /**
    * Convenience method to getblockheader, typing mapping is non exhaustive
    */
-  async getBlockHeader (hash: string): Promise<BlockHeader> {
+  async getBlockHeader (hash: string): Promise<blockchain.BlockHeader> {
     return await this.call('getblockheader', [hash])
   }
 
