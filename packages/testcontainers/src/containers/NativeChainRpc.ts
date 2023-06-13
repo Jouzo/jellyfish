@@ -1,6 +1,7 @@
 import { StartedNativeChainContainer } from './NativeChainContainer'
 import fetch from 'cross-fetch'
 import { DeFiDContainer, MasterNodeRegTestContainer } from '../index'
+import { BlockHeader } from 'packages/jellyfish-api-core/dist/category/blockchain'
 
 export class NativeChainRpc {
   private readonly rpcUrl: string
@@ -79,9 +80,18 @@ export class NativeChainRpc {
     if (address == null) {
       throw new Error('Undefined address to generate to. Please specify an address or initialize the container with a MasterNodeKey.')
     }
+
+    const hash = await this.getBestBlockHash()
+    console.log('hash', hash)
+    const blockHeader = await this.getBlockHeader(hash)
+    console.log('blockHeader', blockHeader)
+    let mockTime = blockHeader.time
     for (let minted = 0, tries = 0; minted < nblocks && tries < maxTries; tries++) {
       const result = await this.call('generatetoaddress', [1, address, 1])
       if (result === 1) {
+        mockTime += 1
+        await this.call('setmocktime', [mockTime])
+
         minted += 1
       }
     }
@@ -99,6 +109,13 @@ export class NativeChainRpc {
    */
   async getBlockCount (): Promise<number> {
     return await this.call('getblockcount', [])
+  }
+
+  /**
+   * Convenience method to getblockheader, typing mapping is non exhaustive
+   */
+  async getBlockHeader (hash: string): Promise<BlockHeader> {
+    return await this.call('getblockheader', [hash])
   }
 
   /**
