@@ -1,7 +1,7 @@
 import { StartedNativeChainContainer } from './NativeChainContainer'
 import fetch from 'cross-fetch'
 import { DeFiDContainer, MasterNodeRegTestContainer } from '../index'
-import { blockchain } from 'packages/jellyfish-api-core'
+import { blockchain } from '@defichain/jellyfish-api-core'
 
 export class NativeChainRpc {
   private readonly rpcUrl: string
