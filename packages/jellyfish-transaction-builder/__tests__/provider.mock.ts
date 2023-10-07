@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js'
-import { Bech32, EllipticPair, HASH160, WIF } from '@defichain/jellyfish-crypto'
-import { EllipticPairProvider, FeeRateProvider, Prevout, PrevoutProvider } from '../src'
+import { Bech32, EllipticPair, Eth, HASH160, WIF } from '@defichain/jellyfish-crypto'
+import { EllipticPairProvider, FeeRateProvider, ListUnspentQueryOptions, Prevout, PrevoutProvider } from '../src'
 import { MasterNodeRegTestContainer } from '@defichain/testcontainers'
 import { OP_CODES, Script } from '@defichain/jellyfish-transaction'
 import { randomEllipticPair } from './test.utils'
@@ -38,7 +38,7 @@ export class MockPrevoutProvider implements PrevoutProvider {
     })
   }
 
-  async collect (minBalance: BigNumber): Promise<Prevout[]> {
+  async collect (minBalance: BigNumber, options?: ListUnspentQueryOptions): Promise<Prevout[]> {
     const pubKey = await this.ellipticPair.publicKey()
     const address = Bech32.fromPubKey(pubKey, 'bcrt')
 
@@ -47,7 +47,7 @@ export class MockPrevoutProvider implements PrevoutProvider {
     //  will appear sometimes. Likely due to race conditions in bitcoin code,
     //  e.g. -reindex when importprivkey.
     const unspent: any[] = await this.container.call('listunspent', [
-      1, 9999999, [address], true
+      1, 9999999, [address], true, options
     ])
 
     return unspent.map((utxo: any): Prevout => {
@@ -82,6 +82,16 @@ export class MockEllipticPairProvider implements EllipticPairProvider {
       stack: [
         OP_CODES.OP_0,
         OP_CODES.OP_PUSHDATA(HASH160(await this.ellipticPair.publicKey()), 'little')
+      ]
+    }
+  }
+
+  async evmScript (): Promise<Script> {
+    const pubKeyUncompressed = await this.ellipticPair.publicKeyUncompressed()
+    return {
+      stack: [
+        OP_CODES.OP_16,
+        OP_CODES.OP_PUSHDATA_HEX_BE(Eth.fromPubKeyUncompressed(pubKeyUncompressed).substring(2))
       ]
     }
   }
@@ -131,9 +141,25 @@ export class MockProviders {
     return Bech32.fromPubKey(pubKey, 'bcrt', 0x00)
   }
 
-  async setupMocks (): Promise<void> {
+  async getEvmAddress (): Promise<string> {
+    const pubKeyUncompressed = await this.ellipticPair.publicKeyUncompressed()
+    return Eth.fromPubKeyUncompressed(pubKeyUncompressed)
+  }
+
+  async setupMocks (evm = false): Promise<void> {
     // full nodes need importprivkey or else it can't list unspent
-    const wif = WIF.encode(0xef, await this.ellipticPair.privateKey())
-    await this.container.call('importprivkey', [wif])
+    const privKey = await this.ellipticPair.privateKey()
+
+    // TODO(canonbrother): try..catch to skip the err to allow import raw privkey again to support evm addr
+    // due to wif was imported beforehand
+    // https://github.com/BirthdayResearch/jellyfishsdk/blob/60ebb395ce78ca8d395ede56f90e46c18c0da935/packages/testcontainers/src/containers/RegTestContainer/Masternode.ts#L59-L60
+    // remove once auto import is done
+    try {
+      evm
+        ? await this.container.call('importprivkey', [privKey.toString('hex')])
+        : await this.container.call('importprivkey', [WIF.encode(0xef, privKey)])
+    } catch (err) {
+      console.log('err: ', err)
+    }
   }
 }

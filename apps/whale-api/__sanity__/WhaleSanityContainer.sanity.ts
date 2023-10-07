@@ -172,7 +172,8 @@ describe('/rpc/getblock', () => {
     nonutxo: [
       {
         AnchorReward: 0.2,
-        IncentiveFunding: 20
+        Burnt: 0,
+        CommunityDevelopmentFunds: 0
       }
     ],
     size: 1424,

@@ -7,6 +7,8 @@ import {
   UtxosToAccount,
   SetFutureSwap,
   CAccountToAccount,
+  CTransferDomain,
+  TransferDomain,
   CAccountToUtxos,
   CAnyAccountToAccount,
   CUtxosToAccount,
@@ -119,6 +121,7 @@ import {
   CPlaceAuctionBid,
   PlaceAuctionBid
 } from './dftx_vault'
+import { CEvmTx, EvmTx } from './dftx_evmtx'
 
 /**
  * DeFi Transaction
@@ -220,6 +223,8 @@ export class CDfTx extends ComposableBuffer<DfTx<any>> {
         return compose<AccountToUtxos>(CAccountToUtxos.OP_NAME, d => new CAccountToUtxos(d))
       case CAccountToAccount.OP_CODE:
         return compose<AccountToAccount>(CAccountToAccount.OP_NAME, d => new CAccountToAccount(d))
+      case CTransferDomain.OP_CODE:
+        return compose<TransferDomain>(CTransferDomain.OP_NAME, d => new CTransferDomain(d))
       case CAnyAccountToAccount.OP_CODE:
         return compose<AnyAccountToAccount>(CAnyAccountToAccount.OP_NAME, d => new CAnyAccountToAccount(d))
       case CSetFutureSwap.OP_CODE:
@@ -294,6 +299,8 @@ export class CDfTx extends ComposableBuffer<DfTx<any>> {
         return compose<PaybackLoanV2>(CPaybackLoanV2.OP_NAME, d => new CPaybackLoanV2(d))
       case CPlaceAuctionBid.OP_CODE:
         return compose<PlaceAuctionBid>(CPlaceAuctionBid.OP_NAME, d => new CPlaceAuctionBid(d))
+      case CEvmTx.OP_CODE:
+        return compose<EvmTx>(CEvmTx.OP_NAME, d => new CEvmTx(d))
       default:
         return compose<DeFiOpUnmapped>(CDeFiOpUnmapped.OP_NAME, d => new CDeFiOpUnmapped(d))
     }

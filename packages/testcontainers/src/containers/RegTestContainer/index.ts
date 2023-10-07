@@ -42,6 +42,7 @@ export class RegTestContainer extends DeFiDContainer {
       '-fortcanningepilogueheight=15',
       '-grandcentralheight=16',
       '-grandcentralepilogueheight=17',
+      '-nextnetworkupgradeheight=18',
       '-regtest-skip-loan-collateral-validation',
       '-regtest-minttoken-simulate-mainnet=0',
       '-rpc-governance-accept-neutral=1'
@@ -55,11 +56,15 @@ export class RegTestContainer extends DeFiDContainer {
     return cmds
   }
 
-  async getNewAddress (label: string = '', addressType: 'legacy' | 'p2sh-segwit' | 'bech32' | string = 'bech32'): Promise<string> {
+  async getNewAddress (label: string = '', addressType: 'legacy' | 'p2sh-segwit' | 'bech32' | 'eth' | string = 'bech32'): Promise<string> {
     return await this.rpc.getNewAddress(label, addressType)
   }
 
   async getRpcPort (): Promise<string> {
     return await this.getPort('19554/tcp')
+  }
+
+  async getEvmRpcPort (): Promise<string> {
+    return await this.getPort('19551/tcp')
   }
 }

@@ -289,7 +289,7 @@ describe('Update Masternode', () => {
     const ownerAddress = await client.wallet.getNewAddress()
     const masternodeId = await client.masternode.createMasternode(ownerAddress)
 
-    await container.generate(1)
+    await container.generate(20)
 
     {
       const ownerAddressNew = await client.wallet.getNewAddress('', AddressType.P2SH_SEGWIT)
@@ -309,14 +309,15 @@ describe('Update Masternode', () => {
       await expect(promise).rejects.toThrow(`operatorAddress (${operatorAddress}) does not refer to a P2PKH or P2WPKH address`)
     }
 
-    {
-      const rewardAddress = await client.wallet.getNewAddress('', AddressType.P2SH_SEGWIT)
-      const promise = client.masternode.updateMasternode(masternodeId, {
-        rewardAddress
-      })
-      await expect(promise).rejects.toThrow(RpcApiError)
-      await expect(promise).rejects.toThrow(`rewardAddress (${rewardAddress}) does not refer to a P2PKH or P2WPKH address`)
-    }
+    // Updated: P2SH is allowed for rewardAddress - https://github.com/DeFiCh/ain/pull/1664
+    // {
+    //   const rewardAddress = await client.wallet.getNewAddress('', AddressType.P2SH_SEGWIT)
+    //   const promise = client.masternode.updateMasternode(masternodeId, {
+    //     rewardAddress
+    //   })
+    //   await expect(promise).rejects.toThrow(RpcApiError)
+    //   await expect(promise).rejects.toThrow('Reward address must be P2PKH or P2WPKH type\', code: -32600, method: updatemasternode')
+    // }
   })
 
   it('should be failed as invalid address is not allowed', async () => {
@@ -332,7 +333,7 @@ describe('Update Masternode', () => {
       })
 
       await expect(promise).rejects.toThrow(RpcApiError)
-      await expect(promise).rejects.toThrow(`RpcApiError: 'ownerAddress (${invalidAddress}) does not refer to a P2PKH or P2WPKH address', code: -8, method: updatemasternode`)
+      await expect(promise).rejects.toThrow(`ownerAddress (${invalidAddress}) does not refer to a P2PKH or P2WPKH address`)
     }
 
     {
@@ -352,7 +353,7 @@ describe('Update Masternode', () => {
       })
 
       await expect(promise).rejects.toThrow(RpcApiError)
-      await expect(promise).rejects.toThrow(`RpcApiError: 'rewardAddress (${invalidAddress}) does not refer to a P2PKH or P2WPKH address', code: -8, method: updatemasternode`)
+      await expect(promise).rejects.toThrow(`rewardAddress (${invalidAddress}) does not refer to a P2SH, P2PKH or P2WPKH address`)
     }
   })
 
