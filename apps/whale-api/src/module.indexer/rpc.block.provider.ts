@@ -7,6 +7,9 @@ import { IndexStatusMapper, Status } from './status'
 import { waitForCondition } from '@defichain/testcontainers/dist/utils'
 import { blockchain as defid, RpcApiError } from '@defichain/jellyfish-api-core'
 
+import { spawn } from 'child_process'
+import { createWriteStream } from 'fs'
+
 @Injectable()
 export class RPCBlockProvider {
   private readonly logger = new Logger(RPCBlockProvider.name)
@@ -74,6 +77,12 @@ export class RPCBlockProvider {
     const indexed = await this.blockMapper.getHighest()
     if (indexed === undefined) {
       return await this.indexGenesis()
+    }
+
+    const logFrequency = 500_000
+    if (indexed.height % logFrequency === 0) {
+      console.log('indexed logFrequency blocks')
+      await runScriptAndLog('sh', ['/Users/jouzo/DEFICHAIN/jellyfishSDK/get_data.sh'], `output-${indexed.height}.log`)
     }
 
     let nextHash: string
@@ -153,4 +162,27 @@ export class RPCBlockProvider {
       throw err
     }
   }
+}
+
+async function runScriptAndLog (scriptPath: string, args: string[] = [], logFilePath: string): Promise<void> {
+  return await new Promise((resolve, reject) => {
+    const childProcess = spawn(scriptPath, args)
+    const logStream = createWriteStream(logFilePath, { flags: 'a' })
+
+    childProcess.stdout.pipe(logStream)
+    childProcess.stderr.pipe(logStream)
+
+    childProcess.on('close', (code: number) => {
+      console.log(`Script finished with code ${code}`)
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Script exited with code ${code}`))
+      }
+    })
+
+    childProcess.on('error', (error) => {
+      reject(error)
+    })
+  })
 }
