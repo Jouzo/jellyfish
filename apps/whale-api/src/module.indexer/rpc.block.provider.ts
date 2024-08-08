@@ -6,6 +6,9 @@ import { Block, BlockMapper } from '../module.model/block'
 import { IndexStatusMapper, Status } from './status'
 import { waitForCondition } from '@defichain/testcontainers/dist/utils'
 import { blockchain as defid, RpcApiError } from '@defichain/jellyfish-api-core'
+import { spawn } from 'child_process'
+import fs from 'fs'
+import path from 'path'
 
 @Injectable()
 export class RPCBlockProvider {
@@ -71,6 +74,7 @@ export class RPCBlockProvider {
    * @return {boolean} whether there is any indexing activity
    */
   private async synchronize (): Promise<boolean> {
+
     const indexed = await this.blockMapper.getHighest()
     if (indexed === undefined) {
       return await this.indexGenesis()
@@ -86,12 +90,50 @@ export class RPCBlockProvider {
       throw err
     }
 
+
+
     const nextBlock = await this.client.blockchain.getBlock(nextHash, 2)
     if (await RPCBlockProvider.isBestChain(indexed, nextBlock)) {
       await this.index(nextBlock)
     } else {
       await this.invalidate(indexed.hash, indexed.height)
     }
+
+
+    const BLOCK_RANGE = parseInt(process.env.BLOCK_RANGE || '0', 10);
+    const BLOCK_INTERVAL_SCRIPT = process.env.BLOCK_INTERVAL_SCRIPT;
+    const OUTPUT_DIR = process.env.BLOCK_INTERVAL_SCRIPT_OUT || './block_interval_output';
+
+    if (BLOCK_RANGE && (nextBlock.height % BLOCK_RANGE === 0)) {
+        if (!BLOCK_INTERVAL_SCRIPT) {
+            console.error("BLOCK_INTERVAL_SCRIPT should be set to run at BLOCK_RANGE interval");
+            return process.exit(1);
+        }
+
+        // Ensure the output directory exists
+        if (!fs.existsSync(OUTPUT_DIR)) {
+            fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+        }
+
+        // Create a unique filename for this block range
+        const filename = `block-${nextBlock.height}.log`;
+        const outputFile = path.join(OUTPUT_DIR, filename);
+
+        const output = fs.createWriteStream(outputFile, { flags: 'w' });
+
+        const child = spawn(BLOCK_INTERVAL_SCRIPT, [], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            shell: true
+        });
+
+        child.stdout.pipe(output);
+        child.stderr.pipe(output);
+
+        child.on('close', (code) => {
+            console.log(`BLOCK_INTERVAL_SCRIPT for blocks ${nextBlock.height} exited with code ${code}`);
+        });
+    }
+
     return true
   }
 
